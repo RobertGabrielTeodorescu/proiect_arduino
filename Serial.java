@@ -1,4 +1,7 @@
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Scanner;
 import com.fazecast.jSerialComm.*;
 
@@ -6,33 +9,46 @@ public class Serial {
 
     public static void main(String[] args) throws IOException {
 
-        SerialPort[] ports = SerialPort.getCommPorts();
-        System.out.println("Select a port:");
-        int i = 1;
-        for(SerialPort port : ports)
-            System.out.println(i++ +  ": " + port.getSystemPortName());
-        Scanner s = new Scanner(System.in);
-        int chosenPort = s.nextInt();
+        System.out.println("connect");
+        SerialPort port = SerialPort.getCommPort("COM6"); // change if different
+        port.setComPortTimeouts(SerialPort.TIMEOUT_SCANNER,0,0);
+        port.openPort();
+        port.setBaudRate(9600);
 
-        SerialPort serialPort = ports[chosenPort - 1];
-        if(serialPort.openPort())
-            System.out.println("Port opened successfully.");
-        else {
-            System.out.println("Unable to open the port.");
-            return;
+        System.out.println(port.getBaudRate());
+
+        try {Thread.sleep(600); } catch(Exception e) {} // I think this sleep is a must until it opens
+        System.out.println(port.isOpen());
+        while(true){
+            if(port.isOpen()) {
+                System.out.println("port open!");
+                //try {Thread.sleep(500); } catch(Exception e) {}
+
+                File file=new File("C:\\Users\\robi\\Desktop\\proiect_v1\\comm\\src\\info");
+                Scanner reader=new Scanner(file);
+                String info= reader.nextLine();
+
+                PrintWriter output = new PrintWriter(port.getOutputStream());
+                output.write(info);
+                try {Thread.sleep(500); } catch(Exception e) {}
+                output.flush();
+                System.out.println("info sent");
+
+                try {Thread.sleep(500); } catch(Exception e) {}
+                //port.closePort();
+                Scanner data = new Scanner(port.getInputStream());
+                String value="";
+                if(data.hasNextLine()){
+                    value = data.nextLine();
+                    FileWriter fileWriter=new FileWriter(file);
+                    PrintWriter printWriter=new PrintWriter(fileWriter);
+                    printWriter.print(value);
+                    printWriter.close();
+                    System.out.println(value);
+                }
+            }
         }
-        serialPort.setComPortParameters(9600, 8, 1, SerialPort.NO_PARITY);
-        serialPort.setComPortTimeouts(SerialPort.TIMEOUT_SCANNER, 0, 0);
 
-        /*Scanner data = new Scanner(serialPort.getInputStream());
-        int value = 0;
-        while(data.hasNextLine()){
-            try{value = Integer.parseInt(data.nextLine());}catch(Exception e){}
-            System.out.println(value);
-        }
-        System.out.println("Done.");*/
-
-        serialPort.getOutputStream().write(123);
 
     }
 
